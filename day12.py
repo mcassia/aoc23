@@ -2,48 +2,65 @@ from utils import get_input_lines
 
 
 def solve_1():
-    count = 0
-    for line in get_input_lines():
-        pattern, counts = line.split()
-        counts = tuple(map(int, counts.split(',')))
-        count += resolve(pattern, counts)
-    return count
+    return solve(1)
 
+
+def solve_2():
+    return solve(5)
+
+
+def solve(multiplier=1):
+
+    total = 0
+
+    lines = get_input_lines()
+    for i, line in enumerate(lines):
+
+        pattern, counts = line.split()
+        pattern = '?'.join(pattern for _ in range(multiplier))
+        counts = ','.join(counts for _ in range(multiplier))
+
+        counts = tuple(map(int, counts.split(',')))
+
+        result = resolve(pattern, counts)
+        total += result
+
+    return total
+
+
+CACHE = {}
 
 def resolve(pattern, counts):
-    return sum(validate(p, counts) for p in options(pattern))
 
+    # If this specific pattern and counts combination was already encountered, then fetch the
+    # result from cache, as it's guaranteed to be the same, regardless of origin
+    key = (pattern, counts)
+    if key in CACHE:
+        return CACHE[key]
 
-def validate(pattern, counts):
-    groups = split(pattern)
-    groups = [g for g in groups if '#' in g]
-    if len(groups) == len(counts):
-        for g, c in zip(groups, counts):
-            if len(g) != c:
-                return False
-        return True
-    return False
+    # If no more segments are to be placed, determine if it's a valid termination
+    if not counts:
+        return '#' not in pattern
 
+    # All the possible indices from where to start filling
+    indices = []
+    for i, c in enumerate(pattern):
+        if c == '?':
+            indices.append(i)
+        elif c == '#':
+            indices.append(i)
+            break
 
-def options(pattern):
-    c = pattern[0]
-    opts = '#.' if c == '?' else c
-    for o in opts:
-        if not pattern[1:]:
-            yield o
-        else:
-            for oo in options(pattern[1:]):
-                yield o + oo
+    # Search
+    total = 0
+    n = counts[0]
+    for i in indices:
+        sub = pattern[i:i+n]
+        if len(sub) != n: continue
+        if '.' in sub: continue
+        if pattern[i+n:i+n+1] == '#': continue
+        total += int(resolve(pattern[i+n+1:], counts[1:]))
 
+    CACHE[key] = total
 
-def split(pattern):
-    groups = []
-    buf = ''
-    for c in pattern:
-        if not buf or c == buf[-1]:
-            buf += c
-        else:
-            groups.append(buf)
-            buf = c
-    groups.append(buf)
-    return groups
+    return total
